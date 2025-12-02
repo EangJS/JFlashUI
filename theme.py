@@ -119,21 +119,42 @@ def get_theme():
 
         /* ----- SCROLLBARS ----- */
         QScrollBar:vertical {
-            background: #1e1e1e;
-            width: 12px;
-            margin: 0px;
-            border-radius: 5px;
+            background: #2a2a3d;
+            width: 14px;
+            margin: 0px 0px 0px 0px;
+            border-radius: 4px;
         }
+
         QScrollBar::handle:vertical {
-            background: #3a3a3a;
-            border-radius: 5px;
+            background: #6c6cff;
+            min-height: 20px;
+            border-radius: 4px;
         }
-        QScrollBar::handle:vertical:hover {
-            background: #555;
+
+        QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+            background: none;
         }
-        QScrollBar::add-line,
-        QScrollBar::sub-line {
-            height: 0px;
+
+        QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+            background: none;
+        }
+
+        QScrollBar:horizontal {
+            background: #2a2a3d;
+            height: 14px;
+            margin: 0px 0px 0px 0px;
+            border-radius: 4px;
+        }
+
+        QScrollBar::handle:horizontal {
+            background: #6c6cff;
+            min-width: 20px;
+            border-radius: 4px;
+        }
+
+        QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal,
+        QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
+            background: none;
         }
 
         /* Red “danger” buttons */

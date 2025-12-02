@@ -5,17 +5,19 @@ import subprocess
 import json
 import time
 from PyQt6.QtWidgets import (
-    QApplication, QWidget, QLabel, QLineEdit,
+    QApplication, QWidget, QLabel, QLineEdit, QComboBox,
     QFileDialog, QVBoxLayout, QTextEdit, QMessageBox, QHBoxLayout,
     QInputDialog, QGraphicsDropShadowEffect, QFrame, QCheckBox
 )
 from PyQt6.QtGui import QIcon, QColor
 from PyQt6.QtCore import QThread, pyqtSignal, QSize
 from theme import get_theme, hex_box_style
-from styles import MaterialButton, MaterialComboBox
+from styles import MaterialButton, MaterialCheckBox, MaterialComboBox
 from widgets import FlashFileWidget
+from parser import get_config, set_config
 
 SETTINGS_FILE = "settings.json"
+swd_speeds = ["1", "5", "100", "500", "1000", "2000", "4000", "4800", "6000", "8000", "9600", "12000", "15000", "20000", "25000", "30000", "40000"]
 
 
 class FlashWorker(QThread):
@@ -91,23 +93,20 @@ class JFlashGUI(QWidget):
         sn_layout = QHBoxLayout()
         sn_label = QLabel("🔌 JLink Serial:")
         self.jlink_sn = QLineEdit()
+        swd_speed_label = QLabel("SWD Speed (KHz):")
+        self.swd_speed = MaterialComboBox()
+        self.swd_speed.setMinimumWidth(100)
+        for speed in swd_speeds:
+            self.swd_speed.addItem(f"{speed}")
+        self.swd_speed.currentTextChanged.connect(self.on_swd_combo_change)
+        
         sn_layout.addWidget(sn_label)
         sn_layout.addWidget(self.jlink_sn)
+        sn_layout.addWidget(swd_speed_label)
+        sn_layout.addWidget(self.swd_speed)
 
         # Right-aligned: checkbox
-        self.chip_erase = QCheckBox("Full Chip Erase")
-        self.chip_erase.setStyleSheet("""
-            QCheckBox:checked {
-                color: red;           /* Text color */
-            }
-            QCheckBox {
-                font-weight: bold;    /* Text bold */
-            }
-            QCheckBox::indicator:checked {
-                background-color: red; /* Checkbox itself */
-                border: 1px solid red; /* Optional border */
-            }
-        """)
+        self.chip_erase = MaterialCheckBox("Full Chip Erase")
 
         misc_layout.addLayout(sn_layout)
         misc_layout.addWidget(self.chip_erase)
@@ -209,7 +208,11 @@ class JFlashGUI(QWidget):
 
         p = self.profiles[index]
 
-        self.prj_path.setText(p.get("project_file", ""))
+        self.project_file = p.get("project_file", "")
+        self.prj_path.setText(self.project_file)
+        if self.project_file != "":
+            self.swd_speed.setCurrentText(str(get_config(self.project_file, "JTAG", "Speed1")))  # Default 4000 kHz
+
         self.bootloader_widget.file_path.setText(p.get("bootloader", ""))
         self.kernel_widget.file_path.setText(p.get("image_file", ""))
         self.param_widget.file_path.setText(p.get("param_file", ""))
@@ -287,6 +290,12 @@ class JFlashGUI(QWidget):
         file, _ = QFileDialog.getOpenFileName(self, "Select Project File", "", "JFlash Project (*.jflash)")
         if file:
             self.prj_path.setText(file)
+
+    # ------------------------------------------------------------
+    # CONFIG SELECTION
+    # ------------------------------------------------------------
+    def on_swd_combo_change(self, text):
+        set_config(self.project_file, "JTAG", "Speed1", text)
 
     # ------------------------------------------------------------
     # FLASH EXECUTION
