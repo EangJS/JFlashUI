@@ -153,6 +153,44 @@ def get_theme():
         QPushButton[role="danger"]:pressed {
             background: #c0392b;
         }
+
+        QCheckBox {
+            spacing: 10px;  /* space between box and label */
+            color: #e0e0e0;
+            font-weight: 500;
+        }
+
+        /* Box (indicator) */
+        QCheckBox::indicator {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;   /* rounded edges */
+            border: 2px solid #555555;
+            background: #1e1e1e;
+        }
+
+        /* Checked state */
+        QCheckBox::indicator:checked {
+            background: #1f6feb;  /* Material blue */
+            border: 2px solid #1f6feb;
+        }
+
+        /* Hover effect */
+        QCheckBox::indicator:hover {
+            border: 2px solid #2a7bf5;
+        }
+
+        /* Disabled state */
+        QCheckBox::indicator:disabled {
+            background: #2a2a2a;
+            border: 2px solid #444444;
+            color: #777777;
+        }
+
+        QCheckBox::indicator:checked {
+            image: url("assets/check.svg");
+            background: #1f6feb;
+        }
     """
     return style_sheet
 

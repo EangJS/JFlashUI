@@ -7,7 +7,7 @@ import time
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QLabel, QLineEdit,
     QFileDialog, QVBoxLayout, QTextEdit, QMessageBox, QHBoxLayout,
-    QInputDialog, QGraphicsDropShadowEffect, QFrame
+    QInputDialog, QGraphicsDropShadowEffect, QFrame, QCheckBox
 )
 from PyQt6.QtGui import QIcon, QColor
 from PyQt6.QtCore import QThread, pyqtSignal, QSize
@@ -74,16 +74,6 @@ class JFlashGUI(QWidget):
         profile_row.addWidget(self.btn_delete_profile)
         main_layout.addLayout(profile_row)
 
-        # ---------------- JLink Serial ----------------
-        sn_layout = QHBoxLayout()
-        sn_label = QLabel("🔌 JLink Serial:")
-        sn_label.setMinimumWidth(150)
-        self.jlink_sn = QLineEdit()
-        self.jlink_sn.setMaximumWidth(150)
-        sn_layout.addWidget(sn_label)
-        sn_layout.addWidget(self.jlink_sn)
-        main_layout.addLayout(sn_layout)
-
         # ---------------- JFlash Project File ----------------
         prj_layout = QHBoxLayout()
         prj_label = QLabel("📁 JFlash Project File:")
@@ -95,6 +85,33 @@ class JFlashGUI(QWidget):
         prj_layout.addWidget(self.prj_path)
         prj_layout.addWidget(btn_prj)
         main_layout.addLayout(prj_layout)
+
+        # ---------------- JLink Serial ----------------
+        misc_layout = QHBoxLayout()
+        sn_layout = QHBoxLayout()
+        sn_label = QLabel("🔌 JLink Serial:")
+        self.jlink_sn = QLineEdit()
+        sn_layout.addWidget(sn_label)
+        sn_layout.addWidget(self.jlink_sn)
+
+        # Right-aligned: checkbox
+        self.chip_erase = QCheckBox("Full Chip Erase")
+        self.chip_erase.setStyleSheet("""
+            QCheckBox:checked {
+                color: red;           /* Text color */
+            }
+            QCheckBox {
+                font-weight: bold;    /* Text bold */
+            }
+            QCheckBox::indicator:checked {
+                background-color: red; /* Checkbox itself */
+                border: 1px solid red; /* Optional border */
+            }
+        """)
+
+        misc_layout.addLayout(sn_layout)
+        misc_layout.addWidget(self.chip_erase)
+        main_layout.addLayout(misc_layout)
 
         # ---------------- Flash File Widgets ----------------
         self.bootloader_widget = FlashFileWidget("⚙️ Bootloader", "0x08000000", "Bootloader (*.bin *.trpk)")
@@ -206,6 +223,7 @@ class JFlashGUI(QWidget):
         self.param_widget.chk_enable.setChecked(p.get("param_enabled", False))
 
         self.jlink_sn.setText(p.get("jlink_sn", ""))
+        self.chip_erase.setChecked(p.get("chip_erase", False))
 
     def load_settings(self):
         if not os.path.exists(self.settings_path):
@@ -253,6 +271,7 @@ class JFlashGUI(QWidget):
             "bootloader_enabled": self.bootloader_widget.chk_enable.isChecked(),
             "image_enabled": self.kernel_widget.chk_enable.isChecked(),
             "param_enabled": self.param_widget.chk_enable.isChecked(),
+            "chip_erase": self.chip_erase.isChecked()
         }
 
         with open(self.settings_path, "w") as f:
@@ -268,27 +287,6 @@ class JFlashGUI(QWidget):
         file, _ = QFileDialog.getOpenFileName(self, "Select Project File", "", "JFlash Project (*.jflash)")
         if file:
             self.prj_path.setText(file)
-
-    def select_bootloader(self):
-        file, _ = QFileDialog.getOpenFileName(
-            self, "Select Bootloader File", "", "Bootloader (*.bin *.trpk)"
-        )
-        if file:
-            self.bootloader.setText(file)
-
-    def select_image_file(self):
-        file, _ = QFileDialog.getOpenFileName(
-            self, "Select Image File", "", "(*.bin *.trpk)"
-        )
-        if file:
-            self.image_file.setText(file)
-
-    def select_param_file(self):
-        file, _ = QFileDialog.getOpenFileName(
-            self, "Select Secondary Image File", "", "(*.bin)"
-        )
-        if file:
-            self.param_file.setText(file)
 
     # ------------------------------------------------------------
     # FLASH EXECUTION
@@ -318,7 +316,7 @@ class JFlashGUI(QWidget):
         ]
         binaries = [(f, a) for f, a, chk in binaries if chk]
 
-        if not binaries:
+        if not binaries and not self.chip_erase.isChecked():
             QMessageBox.critical(self, "Error", "No binaries selected to flash.")
             return
 
@@ -344,6 +342,9 @@ class JFlashGUI(QWidget):
         sn = self.jlink_sn.text().strip()
         if sn:
             cmd.extend(["-usb", sn])
+
+        if self.chip_erase.isChecked():
+            cmd.append("-erasechip")
 
         for bin_file, addr in binaries:
             bin_file = bin_file.replace("/", "\\")
