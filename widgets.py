@@ -52,7 +52,9 @@ class FlashFileWidget(QWidget):
         if file:
             self.file_path.setText(file)
             default_kernel_address = "08080000" if self.file_path.text().endswith(".trpk") else "08014000"
-            self.addr.setText(default_kernel_address)
+            default_bootloader_address = "08000000"
+            is_bootloader = True if "boot" in self.file_path.text() else False
+            self.addr.setText(default_bootloader_address if is_bootloader else default_kernel_address)
             self.chk_enable.setChecked(True)
 
 

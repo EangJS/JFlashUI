@@ -1,3 +1,4 @@
+import time
 import sys
 import os
 import shutil
@@ -56,6 +57,7 @@ class JFlashGUI(QWidget):
         profile_row = QHBoxLayout()
         lbl_profile = QLabel("Profile:")
         lbl_profile.setMinimumWidth(150)
+        self.last_loaded_profile = 0
 
         self.profile_select = MaterialComboBox()
         self.profile_select.setMinimumWidth(200)
@@ -143,13 +145,13 @@ class JFlashGUI(QWidget):
         action_layout.setSpacing(12)
         action_frame.setLayout(action_layout)
 
-        btn_run = MaterialButton("⚡ Run Flash")
-        btn_save = MaterialButton("💾 Save Settings", kind="secondary")
-        action_layout.addWidget(btn_run)
-        action_layout.addWidget(btn_save)
+        self.btn_run = MaterialButton("⚡ Run Flash")
+        self.btn_save = MaterialButton("💾 Save Settings", kind="secondary")
+        action_layout.addWidget(self.btn_run)
+        action_layout.addWidget(self.btn_save)
 
-        btn_run.clicked.connect(self.run_flash)
-        btn_save.clicked.connect(self.save_settings)
+        self.btn_run.clicked.connect(self.run_flash)
+        self.btn_save.clicked.connect(self.save_settings)
         main_layout.addWidget(action_frame)
 
         # ---------------- Output Box ----------------
@@ -239,6 +241,7 @@ class JFlashGUI(QWidget):
                 data = json.load(f)
 
             self.profiles = data.get("profiles", [])
+            self.last_loaded_profile = data.get("last_loaded_profile", 0)
 
             # Load profile names into the dropdown
             self.profile_select.clear()
@@ -246,7 +249,11 @@ class JFlashGUI(QWidget):
                 self.profile_select.addItem(p.get("name", "Unnamed Profile"))
 
             if self.profiles:
-                self.load_profile(0)
+                last_loaded_profile = data.get("last_loaded_profile", 0)
+                if 0 <= last_loaded_profile < len(self.profiles):
+                    self.profile_select.setCurrentIndex(last_loaded_profile)
+                else:
+                    self.profile_select.setCurrentIndex(0)
 
             self.output_box.append("Loaded settings.json\n")
 
@@ -278,7 +285,7 @@ class JFlashGUI(QWidget):
         }
 
         with open(self.settings_path, "w") as f:
-            json.dump({"profiles": self.profiles}, f, indent=4)
+            json.dump({"last_loaded_profile": self.last_loaded_profile, "profiles": self.profiles}, f, indent=4)
 
         self.output_box.append("Saved profile to settings.json\n")
 
@@ -296,6 +303,15 @@ class JFlashGUI(QWidget):
     # ------------------------------------------------------------
     def on_swd_combo_change(self, text):
         set_config(self.project_file, "JTAG", "Speed1", text)
+
+    def worker_done_callback(self, start_time):
+        time.sleep(1)
+        self.btn_run.setEnabled(True)
+        self.output_box.append(f"\n--- Finished in {time.time() - start_time:.2f} seconds ---\n")
+
+    def on_exit(self):
+        self.last_loaded_profile = self.profile_select.currentIndex()
+        self.save_settings()
 
     # ------------------------------------------------------------
     # FLASH EXECUTION
@@ -353,7 +369,14 @@ class JFlashGUI(QWidget):
             cmd.extend(["-usb", sn])
 
         if self.chip_erase.isChecked():
-            cmd.append("-erasechip")
+            erase_cmd = cmd + ["-erasechip", "-auto", "-exit"]
+            self.output_box.append("\nRunning Erase Command:\n" + " ".join(erase_cmd) + "\n")
+            start_time = time.time()
+            self.worker = FlashWorker(erase_cmd)
+            self.worker.output.connect(self.output_box.append)
+            self.worker.finished.connect(lambda: self.worker_done_callback(start_time))
+            self.worker.start()
+            self.worker.wait()  # Wait for erase to finish before proceeding
 
         for bin_file, addr in binaries:
             bin_file = bin_file.replace("/", "\\")
@@ -380,7 +403,8 @@ class JFlashGUI(QWidget):
         start_time = time.time()
         self.worker = FlashWorker(cmd)
         self.worker.output.connect(self.output_box.append)
-        self.worker.finished.connect(lambda: self.output_box.append(f"\n--- Finished in {time.time() - start_time:.2f} seconds ---\n"))
+        self.worker.finished.connect(lambda: self.worker_done_callback(start_time))
+        self.btn_run.setEnabled(False)
         self.worker.start()
 
 
@@ -388,6 +412,7 @@ def main():
     app = QApplication(sys.argv)
     app.setStyleSheet(get_theme())
     window = JFlashGUI()
+    app.aboutToQuit.connect(window.on_exit)
     app.setWindowIcon(QIcon('assets/thunder.ico'))
     window.resize(700, 650)
     window.show()

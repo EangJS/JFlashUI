@@ -1,4 +1,5 @@
 import configparser
+import os
 
 def get_config(filename: str, section: str, key: str):
     with open(filename) as f:
@@ -15,6 +16,8 @@ def get_config(filename: str, section: str, key: str):
     return value
 
 def set_config(filename: str, section: str, key: str, value: str):
+    if not os.path.exists(filename):
+        return
     with open(filename) as f:
         lines = f.readlines()
 
