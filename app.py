@@ -414,7 +414,7 @@ def main():
     window = JFlashGUI()
     app.aboutToQuit.connect(window.on_exit)
     app.setWindowIcon(QIcon('assets/thunder.ico'))
-    window.resize(700, 650)
+    window.resize(1000, 650)
     window.show()
     sys.exit(app.exec())
 

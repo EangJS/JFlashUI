@@ -1,5 +1,12 @@
 from PyQt6.QtWidgets import QWidget, QLineEdit, QLabel, QHBoxLayout
+from PyQt6.QtGui import QFont
 from styles import MaterialButton, MaterialCheckBox
+
+default_address_map = {
+    "GREEN2": "08004000",
+    "SMART": "08020000",
+    "DEFAULT": "08014000"
+}
 
 class FlashFileWidget(QWidget):
     """
@@ -10,6 +17,7 @@ class FlashFileWidget(QWidget):
         super().__init__()
 
         self.file_path = QLineEdit()
+        self.file_path.setStyleSheet("font-size: 10pt;")
         self.addr = QLineEdit(default_address)
         self.addr.setMaximumWidth(100)
         self.chk_enable = MaterialCheckBox()
@@ -45,13 +53,24 @@ class FlashFileWidget(QWidget):
         Handle double-click on file_path QLineEdit to open hex viewer
         """
         self.open_hex_viewer()
+        
+    def _get_app_address(self):
+        app_bin_path = self.file_path.text()
+        if app_bin_path.endswith(".trpk"):
+            return "08080000"
+        if "green2" in app_bin_path.lower():
+            return default_address_map["GREEN2"]
+        elif "smart" in app_bin_path.lower():
+            return default_address_map["SMART"]
+        else:
+            return default_address_map["DEFAULT"]
 
     def select_file(self):
         from PyQt6.QtWidgets import QFileDialog
         file, _ = QFileDialog.getOpenFileName(self, f"Select {self.label_text}", "", self.file_filter)
         if file:
             self.file_path.setText(file)
-            default_kernel_address = "08080000" if self.file_path.text().endswith(".trpk") else "08014000"
+            default_kernel_address = self._get_app_address()
             default_bootloader_address = "08000000"
             is_bootloader = True if "boot" in self.file_path.text() else False
             self.addr.setText(default_bootloader_address if is_bootloader else default_kernel_address)
