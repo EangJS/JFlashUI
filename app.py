@@ -369,7 +369,7 @@ class JFlashGUI(QWidget):
             cmd.extend(["-usb", sn])
 
         if self.chip_erase.isChecked():
-            erase_cmd = cmd + ["-erasechip", "-auto", "-exit"]
+            erase_cmd = cmd + ["-erasechip", "-exit"]
             self.output_box.append("\nRunning Erase Command:\n" + " ".join(erase_cmd) + "\n")
             start_time = time.time()
             self.worker = FlashWorker(erase_cmd)
@@ -377,6 +377,9 @@ class JFlashGUI(QWidget):
             self.worker.finished.connect(lambda: self.worker_done_callback(start_time))
             self.worker.start()
             self.worker.wait()  # Wait for erase to finish before proceeding
+
+        if len(binaries) == 0:
+            return
 
         for bin_file, addr in binaries:
             bin_file = bin_file.replace("/", "\\")

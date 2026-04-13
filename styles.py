@@ -5,13 +5,13 @@ class MaterialButton(QPushButton):
     def __init__(self, text="", parent=None, kind="default"):
         super().__init__(text, parent)
 
-        # Set cursor to pointing hand
         self.setCursor(Qt.CursorShape.PointingHandCursor)
 
-        # Kind determines color scheme
-        self.kind = kind
+        # Touch-friendly sizing
+        self.setMinimumHeight(56)
+        self.setMinimumWidth(160)
 
-        # Apply initial style
+        self.kind = kind
         self.update_style()
 
     def update_style(self):
@@ -41,9 +41,10 @@ class MaterialButton(QPushButton):
                 background: {bg};
                 color: {text_color};
                 border: none;
-                border-radius: 6px;
-                padding: 8px 14px;
-                font-weight: bold;
+                border-radius: 10px;
+                padding: 14px 28px;
+                font-size: 18px;
+                font-weight: 600;
             }}
             QPushButton:hover {{
                 background: {hover};
@@ -52,6 +53,7 @@ class MaterialButton(QPushButton):
                 background: {pressed};
             }}
         """)
+
     
 class MaterialCheckBox(QCheckBox):
     def __init__(self, text="", parent=None):
