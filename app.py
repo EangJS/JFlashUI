@@ -212,7 +212,7 @@ class JFlashGUI(QWidget):
 
         self.project_file = p.get("project_file", "")
         self.prj_path.setText(self.project_file)
-        if self.project_file != "":
+        if self.project_file != "" and os.path.exists(self.project_file):
             self.swd_speed.setCurrentText(str(get_config(self.project_file, "JTAG", "Speed1")))  # Default 4000 kHz
 
         self.bootloader_widget.file_path.setText(p.get("bootloader", ""))
